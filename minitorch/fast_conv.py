@@ -93,7 +93,7 @@ def _tensor_conv1d(
     # TODO: Implement for Task 4.1.
     #raise NotImplementedError("Need to implement for Task 4.1")
     for i in prange(out_size):
-        out_index = [0] * len(out_shape)
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
         to_index(i, out_shape, out_index)
         b, o_c, w = out_index
         out_pos = index_to_position(out_index, out_strides)
@@ -101,15 +101,16 @@ def _tensor_conv1d(
         acc = 0.0
         for i_c in range(in_channels):
             for k in range(kw):
-                input_index = [b, i_c, 0]
-                weight_index = [o_c, i_c, 0]
+                input_index = np.zeros(len(input_shape), dtype=np.int32)
+                weight_index = np.zeros(len(weight_shape), dtype=np.int32)
 
                 if reverse:
                     input_index[2] = w - k if w - k >= 0 else -1
                 else:
                     input_index[2] = w + k if w + k < width else -1
 
-                weight_index[2] = k
+                input_index[0], input_index[1] = b, i_c
+                weight_index[0], weight_index[1], weight_index[2] = o_c, i_c, k
 
                 if 0 <= input_index[2] < width:
                     input_pos = index_to_position(input_index, input_strides)
