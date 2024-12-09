@@ -11,6 +11,64 @@ from datasets import load_dataset
 
 EMBEDDING_SIZE = 50
 
+def load_glove_embeddings(path="project/data/glove.6B/glove.6B.50d.txt"):
+    """Load GloVe embeddings from local file.
+
+    Args:
+    ----
+        path: Path to the GloVe embeddings file
+
+    Returns:
+    -------
+        dict: Word to embedding mapping
+    """
+    word2emb = {}
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            values = line.split()
+            word = values[0]
+            vector = [float(x) for x in values[1:]]
+            word2emb[word] = vector
+    return word2emb
+
+# Replace the embeddings initialization line with:
+word2emb = load_glove_embeddings()
+
+class GloveEmbedding:
+    """Simple wrapper class to mimic the original GloveEmbedding interface."""
+
+    def __init__(self, word2emb):
+        self.word2emb = word2emb
+        # Get embedding dimension from first entry
+        self.d_emb = len(next(iter(word2emb.values())))
+
+    def emb(self, word, default=None):
+        """Get embedding for a word.
+
+        Args:
+        ----
+            word: Word to get embedding for
+            default: Default value if word not found
+
+        Returns:
+        -------
+            list: Embedding vector
+        """
+        return self.word2emb.get(word, default)
+
+    def __contains__(self, word):
+        """Support for 'in' operator.
+
+        Args:
+        ----
+            word: Word to check
+
+        Returns:
+        -------
+            bool: True if word is in embeddings
+        """
+        return word in self.word2emb
+
 
 def predictions_dataframe(predictions, sentences):
     df_predictions = pd.DataFrame(
@@ -36,11 +94,13 @@ def load_glue_dataset():
 @st.cache(allow_output_mutation=True)
 def load_data(dataset, n_train, n_val):
     print("Loading embeddings... This can take a while the first time.")
+    embeddings = GloveEmbedding(word2emb)
     return encode_sentiment_data(
         dataset,
-        embeddings.GloveEmbedding(
-            "wikipedia_gigaword", d_emb=EMBEDDING_SIZE, show_progress=True
-        ),
+        embeddings,
+        #embeddings.GloveEmbedding(
+        #    "wikipedia_gigaword", d_emb=EMBEDDING_SIZE, show_progress=True
+        #),
         n_train,
         n_val,
     )

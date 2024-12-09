@@ -64,11 +64,15 @@ class CNNSentimentKim(minitorch.Module):
         self.feature_map_size = feature_map_size
         # TODO: Implement for Task 4.5.
         #raise NotImplementedError("Need to implement for Task 4.5")
-        self.convs = [
-            Conv1d(embedding_size, feature_map_size, fs) for fs in filter_sizes
-        ]
-        self.fc = Linear(len(filter_sizes) * feature_map_size, 1)
-        self.dropout = dropout
+        self.dropout_rate = dropout
+
+        # Define three convolutional layers with different kernel sizes
+        self.conv1 = Conv1d(embedding_size, feature_map_size, filter_sizes[0])
+        self.conv2 = Conv1d(embedding_size, feature_map_size, filter_sizes[1])
+        self.conv3 = Conv1d(embedding_size, feature_map_size, filter_sizes[2])
+
+        # Define a fully connected layer for classification
+        self.fc = Linear(feature_map_size, 1)
 
     def forward(self, embeddings):
         """
@@ -76,13 +80,25 @@ class CNNSentimentKim(minitorch.Module):
         """
         # TODO: Implement for Task 4.5.
         #raise NotImplementedError("Need to implement for Task 4.5")
-        feature_maps = [
-            minitorch.relu(conv(embeddings).max(dim=2)) for conv in self.convs
-        ]
-        combined = minitorch.cat(feature_maps, dim=1)
-        dropped = minitorch.dropout(combined, self.dropout)
-        out = minitorch.sigmoid(self.fc(dropped))
-        return out
+        # Rearrange the embeddings to match Conv1d input expectations
+        embeddings_transposed = embeddings.permute(0, 2, 1)
+
+        # Apply convolutions, activation, and max pooling for each kernel size
+        pooled1 = minitorch.max(self.conv1(embeddings_transposed).relu(), dim=2)
+        pooled2 = minitorch.max(self.conv2(embeddings_transposed).relu(), dim=2)
+        pooled3 = minitorch.max(self.conv3(embeddings_transposed).relu(), dim=2)
+
+        # Combine all pooled features
+        combined_features = pooled1 + pooled2 + pooled3
+
+        # Apply the fully connected layer, ReLU, and dropout
+        fc_output = self.fc(combined_features.view(combined_features.shape[0], self.feature_map_size))
+        fc_output = minitorch.dropout(fc_output, self.dropout_rate, not self.training)
+
+        # Apply sigmoid activation for final output
+        output = fc_output.sigmoid().view(fc_output.shape[0])
+
+        return output
 
 
 # Evaluation helper methods
@@ -264,16 +280,75 @@ def encode_sentiment_data(dataset, pretrained_embeddings, N_train, N_val=0):
 
     return (X_train, y_train), (X_val, y_val)
 
+def load_glove_embeddings(path="project/data/glove.6B/glove.6B.50d.txt"):
+    """Load GloVe embeddings from local file.
+
+    Args:
+    ----
+        path: Path to the GloVe embeddings file
+
+    Returns:
+    -------
+        dict: Word to embedding mapping
+    """
+    word2emb = {}
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            values = line.split()
+            word = values[0]
+            vector = [float(x) for x in values[1:]]
+            word2emb[word] = vector
+    return word2emb
+
+# Replace the embeddings initialization line with:
+word2emb = load_glove_embeddings()
+
+class GloveEmbedding:
+    """Simple wrapper class to mimic the original GloveEmbedding interface."""
+
+    def __init__(self, word2emb):
+        self.word2emb = word2emb
+        # Get embedding dimension from first entry
+        self.d_emb = len(next(iter(word2emb.values())))
+
+    def emb(self, word, default=None):
+        """Get embedding for a word.
+
+        Args:
+        ----
+            word: Word to get embedding for
+            default: Default value if word not found
+
+        Returns:
+        -------
+            list: Embedding vector
+        """
+        return self.word2emb.get(word, default)
+
+    def __contains__(self, word):
+        """Support for 'in' operator.
+
+        Args:
+        ----
+            word: Word to check
+
+        Returns:
+        -------
+            bool: True if word is in embeddings
+        """
+        return word in self.word2emb
+
 
 if __name__ == "__main__":
     train_size = 450
     validation_size = 100
     learning_rate = 0.01
     max_epochs = 250
-
+    embeddings = GloveEmbedding(word2emb)
     (X_train, y_train), (X_val, y_val) = encode_sentiment_data(
         load_dataset("glue", "sst2"),
-        embeddings.GloveEmbedding("wikipedia_gigaword", d_emb=50, show_progress=True),
+        #embeddings.GloveEmbedding("wikipedia_gigaword", d_emb=50, show_progress=True),
+        embeddings,
         train_size,
         validation_size,
     )
