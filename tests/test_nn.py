@@ -6,7 +6,7 @@ from minitorch import Tensor
 
 from .strategies import assert_close
 from .tensor_strategies import tensors
-
+import numpy as np
 
 @pytest.mark.task4_3
 @given(tensors(shape=(1, 1, 4, 4)))
@@ -32,7 +32,29 @@ def test_avg(t: Tensor) -> None:
 @given(tensors(shape=(2, 3, 4)))
 def test_max(t: Tensor) -> None:
     # TODO: Implement for Task 4.4.
-    raise NotImplementedError("Need to implement for Task 4.4")
+    #raise NotImplementedError("Need to implement for Task 4.4")
+    # Convert tensor to numpy for reference
+    out = minitorch.nn.max(t, 0)
+    for j in range(t.shape[1]):  # Iterate over the second dimension
+        for k in range(t.shape[2]):  # Iterate over the third dimension
+            assert_close(out[0, j, k], max([t[i, j, k] for i in range(t.shape[0])]))
+
+    # Test max along dimension 1
+    out = minitorch.nn.max(t, 1)
+    for b in range(t.shape[0]):  # Iterate over the batch dimension
+        for k in range(t.shape[2]):  # Iterate over the width dimension
+            assert_close(out[b, 0, k], max([t[b, i, k] for i in range(t.shape[1])]))
+
+    # Test max along dimension 2
+    out = minitorch.nn.max(t, 2)
+    for b in range(t.shape[0]):  # Iterate over the batch dimension
+        for c in range(t.shape[1]):  # Iterate over the channel dimension
+            assert_close(out[b, c, 0], max([t[b, c, i] for i in range(t.shape[2])]))
+
+
+    # Gradient check with random perturbation
+    perturbed_t = t + minitorch.rand(t.shape) * 1e-5  # Ensure unique values for gradients
+    minitorch.grad_check(lambda x: minitorch.nn.max(x, 2), perturbed_t)
 
 
 @pytest.mark.task4_4
