@@ -52,10 +52,9 @@ def test_max(t: Tensor) -> None:
             assert_close(out[b, c, 0], max([t[b, c, i] for i in range(t.shape[2])]))
 
     # Gradient check with random perturbation
-    perturbed_t = (
-        t + minitorch.rand(t.shape)
-    )  # Ensure unique values for gradients
+    perturbed_t = t + minitorch.rand(t.shape)  # Ensure unique values for gradients
     minitorch.grad_check(lambda x: minitorch.nn.max(x, 2), perturbed_t)
+
 
 @pytest.mark.task4_4
 @given(tensors(shape=(1, 1, 4, 4)))
