@@ -7,8 +7,6 @@ from numba import njit as _njit
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
-    MAX_DIMS,
-    Index,
     Shape,
     Strides,
     Storage,
@@ -88,11 +86,11 @@ def _tensor_conv1d(
         and in_channels == in_channels_
         and out_channels == out_channels_
     )
-    #s1 = input_strides
-    #s2 = weight_strides
+    # s1 = input_strides
+    # s2 = weight_strides
 
     # TODO: Implement for Task 4.1.
-    #raise NotImplementedError("Need to implement for Task 4.1")
+    # raise NotImplementedError("Need to implement for Task 4.1")
     for i in prange(out_size):
         out_index = np.zeros(len(out_shape), dtype=np.int32)
         to_index(i, out_shape, out_index)
@@ -242,14 +240,14 @@ def _tensor_conv2d(
         and out_channels == out_channels_
     )
 
-    #s1 = input_strides
-    #s2 = weight_strides
+    # s1 = input_strides
+    # s2 = weight_strides
     # inners
-    #s10, s11, s12, s13 = s1[0], s1[1], s1[2], s1[3]
-    #s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
+    # s10, s11, s12, s13 = s1[0], s1[1], s1[2], s1[3]
+    # s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
 
     # TODO: Implement for Task 4.2.
-    #raise NotImplementedError("Need to implement for Task 4.2")
+    # raise NotImplementedError("Need to implement for Task 4.2")
     for i in prange(out_size):
         out_index = np.zeros(len(out_shape), dtype=np.int32)
         to_index(i, out_shape, out_index)
@@ -271,7 +269,12 @@ def _tensor_conv2d(
                         input_index[3] = w + k_w if w + k_w < width else -1
 
                     input_index[0], input_index[1] = b, i_c
-                    weight_index[0], weight_index[1], weight_index[2], weight_index[3] = (
+                    (
+                        weight_index[0],
+                        weight_index[1],
+                        weight_index[2],
+                        weight_index[3],
+                    ) = (
                         o_c,
                         i_c,
                         k_h,

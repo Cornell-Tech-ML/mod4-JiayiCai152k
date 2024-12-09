@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import reduce
 from typing import TYPE_CHECKING, TypeVar, Any
 
 import numpy as np
@@ -249,7 +248,6 @@ def tensor_zip(
             for i in prange(len(out)):
                 out[i] = fn(a_storage[i], b_storage[i])
 
-
     return njit(_zip, parallel=True)  # type: ignore
 
 
@@ -356,7 +354,7 @@ def _tensor_matrix_multiply(
                 b_inner = i1 * b_batch_stride + i3 * b_strides[2]
                 acc = 0.0
                 for _ in range(a_shape[2]):
-                    acc +=  a_storage[a_inner] * b_storage[b_inner]
+                    acc += a_storage[a_inner] * b_storage[b_inner]
                     a_inner += a_strides[2]
                     b_inner += b_strides[1]
                 out_position = (

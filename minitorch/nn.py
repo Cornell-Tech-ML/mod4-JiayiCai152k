@@ -36,7 +36,7 @@ def tile(input: Tensor, kernel: Tuple[int, int]) -> Tuple[Tensor, int, int]:
     assert height % kh == 0
     assert width % kw == 0
     # TODO: Implement for Task 4.3.
-    #raise NotImplementedError("Need to implement for Task 4.3")
+    # raise NotImplementedError("Need to implement for Task 4.3")
     new_height = height // kh
     new_width = width // kw
 
@@ -50,15 +50,17 @@ def tile(input: Tensor, kernel: Tuple[int, int]) -> Tuple[Tensor, int, int]:
 
 # TODO: Implement for Task 4.3.
 def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
-    """
-    Tiled average pooling 2D
+    """Tiled average pooling 2D
 
     Args:
+    ----
         input : batch x channel x height x width
         kernel : height x width of pooling
 
     Returns:
+    -------
         Pooled tensor
+
     """
     tiled, new_height, new_width = tile(input, kernel)
 
@@ -69,8 +71,7 @@ def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     return pooled.view(tiled.shape[0], tiled.shape[1], new_height, new_width)
 
 
-
-#4.4
+# 4.4
 
 max_reduce = FastOps.reduce(operators.max, -1e9)
 
@@ -120,10 +121,11 @@ def logsoftmax(input: Tensor, dim: int) -> Tensor:
 
 def maxpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     """Performs max pooling on the input tensor using the specified kernel size."""
-    #batch, channel, height, width = input.shape
+    # batch, channel, height, width = input.shape
     tiled, new_height, new_width = tile(input, kernel)
     max_values = max_reduce(tiled, dim=4)
     return max_values.view(input.shape[0], input.shape[1], new_height, new_width)
+
 
 def dropout(input: Tensor, rate: float, ignore: bool = False) -> Tensor:
     """Applies dropout to the input tensor with a given drop rate and scaling."""
