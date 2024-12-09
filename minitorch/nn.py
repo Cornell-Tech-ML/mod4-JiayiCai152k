@@ -123,7 +123,7 @@ def maxpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     """Performs max pooling on the input tensor using the specified kernel size."""
     # batch, channel, height, width = input.shape
     tiled, new_height, new_width = tile(input, kernel)
-    max_values = max_reduce(tiled, dim=4)
+    max_values = max_reduce(tiled, 4)
     return max_values.view(input.shape[0], input.shape[1], new_height, new_width)
 
 
