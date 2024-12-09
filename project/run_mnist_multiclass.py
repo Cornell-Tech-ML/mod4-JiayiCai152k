@@ -42,7 +42,8 @@ class Conv2d(minitorch.Module):
 
     def forward(self, input):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        #raise NotImplementedError("Need to implement for Task 4.5")
+        return minitorch.conv2d(input, self.weights.value) + self.bias.value
 
 
 class Network(minitorch.Module):
@@ -68,11 +69,41 @@ class Network(minitorch.Module):
         self.out = None
 
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        #raise NotImplementedError("Need to implement for Task 4.5")
+        self.conv1 = Conv2d(1, 4, 3, 3)  # 1 input channel, 4 output channels
+        self.conv2 = Conv2d(4, 8, 3, 3)  # 4 input channels, 8 output channels
+        self.fc1 = Linear(392, 64)      # Flattened size to 64
+        self.fc2 = Linear(64, 10)
 
     def forward(self, x):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        # Step 1: Apply first convolution, followed by ReLU
+        conv1_output = self.conv1.forward(x)
+        activated_mid = conv1_output.relu()
+        self.mid = activated_mid  # For visualization
+
+        # Step 2: Apply second convolution, followed by ReLU
+        conv2_output = self.conv2.forward(self.mid)
+        activated_out = conv2_output.relu()
+        self.out = activated_out  # For visualization
+
+        # Step 3: Perform 2D pooling
+        pooled_features = minitorch.maxpool2d(self.out, kernel=(4, 4))
+
+        # Step 4: Flatten the tensor into a 2D shape
+        flattened_output = pooled_features.view(pooled_features.shape[0], 392)
+
+        # Step 5: Apply first linear layer with ReLU, followed by dropout
+        fc1_result = self.fc1.forward(flattened_output).relu()
+        fc1_dropped = minitorch.dropout(fc1_result, rate=0.25, ignore=not self.training)
+
+        # Step 6: Apply second linear layer
+        logits = self.fc2.forward(fc1_dropped)
+
+        # Step 7: Apply log softmax for classification
+        log_probs = minitorch.logsoftmax(logits, dim=1)
+
+        return log_probs
 
 
 def make_mnist(start, stop):

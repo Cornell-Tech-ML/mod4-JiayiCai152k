@@ -363,5 +363,5 @@ def _tensor_matrix_multiply(
                 out[out_position] = acc
 
 
-tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True, fastMath=True)
+tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)
 assert tensor_matrix_multiply is not None
