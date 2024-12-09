@@ -7,8 +7,6 @@ from numba import njit as _njit
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
-    MAX_DIMS,
-    Index,
     Shape,
     Strides,
     Storage,
@@ -22,6 +20,7 @@ Fn = TypeVar("Fn")
 
 
 def njit(fn: Fn, **kwargs: Any) -> Fn:
+    """Apply No-Python JIT compilation with inline optimization."""
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -87,11 +86,38 @@ def _tensor_conv1d(
         and in_channels == in_channels_
         and out_channels == out_channels_
     )
-    s1 = input_strides
-    s2 = weight_strides
+    # s1 = input_strides
+    # s2 = weight_strides
 
     # TODO: Implement for Task 4.1.
-    raise NotImplementedError("Need to implement for Task 4.1")
+    # raise NotImplementedError("Need to implement for Task 4.1")
+    for i in prange(out_size):
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+        to_index(i, out_shape, out_index)
+        b, o_c, w = out_index
+        out_pos = index_to_position(out_index, out_strides)
+
+        acc = 0.0
+        for i_c in range(in_channels):
+            for k in range(kw):
+                input_index = np.zeros(len(input_shape), dtype=np.int32)
+                weight_index = np.zeros(len(weight_shape), dtype=np.int32)
+
+                if reverse:
+                    input_index[2] = w - k if w - k >= 0 else -1
+                else:
+                    input_index[2] = w + k if w + k < width else -1
+
+                input_index[0], input_index[1] = b, i_c
+                weight_index[0], weight_index[1], weight_index[2] = o_c, i_c, k
+
+                if 0 <= input_index[2] < width:
+                    input_pos = index_to_position(input_index, input_strides)
+                    weight_pos = index_to_position(weight_index, weight_strides)
+
+                    acc += input[input_pos] * weight[weight_pos]
+
+        out[out_pos] = acc
 
 
 tensor_conv1d = njit(_tensor_conv1d, parallel=True)
@@ -127,6 +153,7 @@ class Conv1dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Compute gradients for input and weight during backpropagation."""
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
         out_channels, in_channels, kw = weight.shape
@@ -213,14 +240,54 @@ def _tensor_conv2d(
         and out_channels == out_channels_
     )
 
-    s1 = input_strides
-    s2 = weight_strides
+    # s1 = input_strides
+    # s2 = weight_strides
     # inners
-    s10, s11, s12, s13 = s1[0], s1[1], s1[2], s1[3]
-    s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
+    # s10, s11, s12, s13 = s1[0], s1[1], s1[2], s1[3]
+    # s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
 
     # TODO: Implement for Task 4.2.
-    raise NotImplementedError("Need to implement for Task 4.2")
+    # raise NotImplementedError("Need to implement for Task 4.2")
+    for i in prange(out_size):
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+        to_index(i, out_shape, out_index)
+        b, o_c, h, w = out_index
+        out_pos = index_to_position(out_index, out_strides)
+
+        acc = 0.0
+        for i_c in range(in_channels):
+            for k_h in range(kh):
+                for k_w in range(kw):
+                    input_index = np.zeros(len(input_shape), dtype=np.int32)
+                    weight_index = np.zeros(len(weight_shape), dtype=np.int32)
+
+                    if reverse:
+                        input_index[2] = h - k_h if h - k_h >= 0 else -1
+                        input_index[3] = w - k_w if w - k_w >= 0 else -1
+                    else:
+                        input_index[2] = h + k_h if h + k_h < height else -1
+                        input_index[3] = w + k_w if w + k_w < width else -1
+
+                    input_index[0], input_index[1] = b, i_c
+                    (
+                        weight_index[0],
+                        weight_index[1],
+                        weight_index[2],
+                        weight_index[3],
+                    ) = (
+                        o_c,
+                        i_c,
+                        k_h,
+                        k_w,
+                    )
+
+                    if 0 <= input_index[2] < height and 0 <= input_index[3] < width:
+                        input_pos = index_to_position(input_index, input_strides)
+                        weight_pos = index_to_position(weight_index, weight_strides)
+
+                        acc += input[input_pos] * weight[weight_pos]
+
+        out[out_pos] = acc
 
 
 tensor_conv2d = njit(_tensor_conv2d, parallel=True, fastmath=True)
@@ -254,6 +321,7 @@ class Conv2dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Compute gradients for input and weight during 2D convolution backpropagation."""
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
         out_channels, in_channels, kh, kw = weight.shape

@@ -2,7 +2,8 @@
 Be sure you have minitorch installed in you Virtual Env.
 >>> pip install -Ue .
 """
-
+import random
+import numpy as np
 import minitorch
 
 # Use this function to make a random parameter in
@@ -11,10 +12,41 @@ def RParam(*shape):
     r = 2 * (minitorch.rand(shape) - 0.5)
     return minitorch.Parameter(r)
 
-
 def default_log_fn(epoch, total_loss, correct, losses):
     print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
 
+# TODO: Implement for Task 2.5.
+class Network(minitorch.Module):
+    def __init__(self, hidden_layers):
+        super().__init__()
+        # TODO: Implement for Task 1.5.
+        #raise NotImplementedError("Need to implement for Task 1.5")
+        self.layer1 = Linear(2, hidden_layers)  # 2 inputs to hidden layer size
+        self.layer2 = Linear(hidden_layers, hidden_layers)  # hidden to hidden
+        self.layer3 = Linear(hidden_layers, 1)  # hidden to 1 output
+
+    def forward(self, x):
+        h = self.layer1.forward(x).relu()
+        h = self.layer2.forward(h).relu()
+        return self.layer3.forward(h).sigmoid()
+
+
+
+class Linear(minitorch.Module):
+    def __init__(self, in_size, out_size):
+        super().__init__()
+        self.weights = RParam(in_size, out_size)
+        self.bias = RParam(out_size)
+        self.out_size = out_size
+
+    def forward(self, x):
+        batch, in_size = x.shape
+        return (
+            self.weights.value.view(1, in_size, self.out_size)
+            * x.view(batch, in_size, 1)
+        ).sum(1).view(batch, self.out_size) + self.bias.value.view(self.out_size)
+
+# The rest of the TensorTrain class remains unchanged
 
 class TensorTrain:
     def __init__(self, hidden_layers):
